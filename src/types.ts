@@ -60,3 +60,19 @@ export interface DocusaurusGlobalData {
     }
   }
 }
+
+export interface DocusaurusGlobalDataSplit {
+  'docusaurus-plugin-content-docs': {
+    [key: string]: {
+      versions: {
+        name: string;
+        path: string;
+        isLast: boolean;
+        docs: {
+          id: string;
+          path: string;
+        }[];
+      }[];
+    },
+  }
+}

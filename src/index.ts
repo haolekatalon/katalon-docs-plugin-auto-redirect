@@ -10,7 +10,7 @@ export default function pluginAutoRedirect(context: LoadContext, options: Plugin
   const lib = new DocumentTrackingLib(getS3Config(options));
 
   const pluginPostBuild: Plugin<void>['postBuild'] = async (props) => {
-    const trackedChanges = await lib.trackChanges(path.resolve(__dirname, '../../../.docusaurus/docusaurus-plugin-content-docs/default'));
+    const trackedChanges = await lib.trackChanges(path.resolve(__dirname, '../../../.docusaurus/docusaurus-plugin-content-docs'));
 
     const { postBuild } = pluginClientRedirects(context, {
       ...options,
