@@ -123,7 +123,7 @@ export default class AWSDocumentTrackingLib {
         };
       });
     }
-    // fs.writeFileSync("trackingFiles.json", JSON.stringify(trackingFiles));
+    fs.writeFileSync("trackingFiles.json", JSON.stringify(trackingFiles));
     return trackingFiles;
   }
 
@@ -155,8 +155,8 @@ export default class AWSDocumentTrackingLib {
         const docPaths = allVersions.map(({ docs }) => docs.map(({ path }) => path)).flat();
         // console.log(docPaths);
         // fs.writeFile('docPaths.json',JSON.stringify(docPaths),function(err){
-          if(err) throw err;
-        })
+        //   if(err) throw err;
+        // })
   
         filenames.forEach(function (filename) {
           var filePath = path.join(childFolder, filename);
