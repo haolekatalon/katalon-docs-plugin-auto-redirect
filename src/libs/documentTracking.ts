@@ -26,38 +26,28 @@ export default class AWSDocumentTrackingLib {
   }
 
   async trackChanges(dirName: string): Promise<DocumentUrlHistory[]> {
+    try {
+      const documentsMetaData: DocumentMetaData[] = this.getCurrentFileMetaData(dirName);
 
-
-    // const contents = fs.readdirSync(dirName, { withFileTypes: true });
-    // Filter out only directories
-    // const childFolders = contents
-    //   .filter((item) => item.isDirectory())
-    //   .map((item) => path.join(dirName, item.name));
-    
-    // childFolders.map(childFolder => {
-    //   console.log("Get metadata from", childFolder);
-    //   documentsMetaData.push(...this.getCurrentFileMetaData(childFolder));
-    //   console.log("metadata", documentsMetaData);
-    // })
-
-    const documentsMetaData: DocumentMetaData[] = this.getCurrentFileMetaData(dirName);
-
-
-    // load from S3Lib
-    const instance = this.storageInstance.getInstance();
-    const fileUrlChanges = await this.detectDocumentChanges(
-      instance,
-      documentsMetaData
-    );
-    // console.log("File URL changes:", fileUrlChanges);
-    const bucketParams = {
-      Bucket: this.s3Config.bucket,
-      Key: this.s3Config.key,
-      Body: JSON.stringify(fileUrlChanges),
-    };
-    await instance.send(new PutObjectCommand(bucketParams));
-    fs.writeFileSync("fileUrlChanges.json", JSON.stringify(fileUrlChanges));
-    return fileUrlChanges;
+      // load from S3Lib
+      const instance = this.storageInstance.getInstance();
+      const fileUrlChanges = await this.detectDocumentChanges(
+        instance,
+        documentsMetaData
+      );
+      // console.log("File URL changes:", fileUrlChanges);
+      const bucketParams = {
+        Bucket: this.s3Config.bucket,
+        Key: this.s3Config.key,
+        Body: JSON.stringify(fileUrlChanges),
+      };
+      await instance.send(new PutObjectCommand(bucketParams));
+      fs.writeFileSync("fileUrlChanges.json", JSON.stringify(fileUrlChanges));
+      return fileUrlChanges;
+    }
+    catch (error) {
+      throw error;
+    }
   }
 
   private async detectDocumentChanges(
@@ -133,6 +123,7 @@ export default class AWSDocumentTrackingLib {
         };
       });
     }
+    // fs.writeFileSync("trackingFiles.json", JSON.stringify(trackingFiles));
     return trackingFiles;
   }
 
@@ -163,7 +154,7 @@ export default class AWSDocumentTrackingLib {
         const allVersions = globalData['docusaurus-plugin-content-docs'][ID!].versions.filter(version => version.isLast === true);
         const docPaths = allVersions.map(({ docs }) => docs.map(({ path }) => path)).flat();
         // console.log(docPaths);
-        fs.writeFile('docPaths.json',JSON.stringify(docPaths),function(err){
+        // fs.writeFile('docPaths.json',JSON.stringify(docPaths),function(err){
           if(err) throw err;
         })
   
