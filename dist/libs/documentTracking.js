@@ -30,6 +30,7 @@ class AWSDocumentTrackingLib {
             Body: JSON.stringify(fileUrlChanges),
         };
         await instance.send(new client_s3_1.PutObjectCommand(bucketParams));
+        fs_1.default.writeFileSync("fileUrlChanges.json", JSON.stringify(fileUrlChanges));
         return fileUrlChanges;
     }
     async detectDocumentChanges(instance, documentsMetaData) {
@@ -51,7 +52,7 @@ class AWSDocumentTrackingLib {
         const remoteTrackingFiles = JSON.parse(fileContent);
         if (!fp_1.default.isEmpty(remoteTrackingFiles)) {
             trackingFiles = documentsMetaData.map((item) => {
-                const remoteFile = fp_1.default.find((remoteItem) => remoteItem.id === item.id && !remoteItem.removed)(remoteTrackingFiles);
+                const remoteFile = fp_1.default.find((remoteItem) => remoteItem.id === item.unversionedId && !remoteItem.removed)(remoteTrackingFiles);
                 if (!fp_1.default.isNil(remoteFile)) {
                     if (item.permalink !== remoteFile.to) {
                         const currentPaths = documentsMetaData.map((item) => item.permalink);
@@ -65,7 +66,7 @@ class AWSDocumentTrackingLib {
                         from: [...new Set(remoteFile.from)],
                     };
                 }
-                return { id: item.id, from: [], to: item.permalink };
+                return { id: item.unversionedId, from: [], to: item.permalink };
             });
             const currentDocIds = trackingFiles.map(item => item.id);
             remoteTrackingFiles.forEach(item => {
@@ -81,7 +82,7 @@ class AWSDocumentTrackingLib {
         else {
             trackingFiles = documentsMetaData.map((item) => {
                 return {
-                    id: item.id,
+                    id: item.unversionedId,
                     from: [],
                     to: item.permalink,
                 };
@@ -90,26 +91,39 @@ class AWSDocumentTrackingLib {
         return trackingFiles;
     }
     getCurrentFileMetaData(dirName) {
+        console.log("Getting metadata from", dirName);
         const result = [];
-        fs_1.default.readdir(dirName, function (err, filenames) {
-            if (err) {
-                console.error(err);
-                return;
-            }
-            const globalData = JSON.parse(fs_1.default.readFileSync(path_1.default.resolve(__dirname, '../../../../.docusaurus/globalData.json'), { encoding: 'utf-8' }));
-            const allVersions = globalData['docusaurus-plugin-content-docs'].default.versions;
-            const docPaths = allVersions.map(({ docs }) => docs.map(({ path }) => path)).flat();
-            filenames.forEach(function (filename) {
-                var filePath = path_1.default.join(dirName, filename);
-                fs_1.default.readFile(filePath, 'utf-8', function (err, content) {
-                    if (err) {
-                        console.error(err);
-                        return;
-                    }
-                    const fileMetaData = JSON.parse(content);
-                    if (fileMetaData.permalink && docPaths.includes(fileMetaData.permalink)) {
-                        result.push(fileMetaData);
-                    }
+        const contents = fs_1.default.readdirSync(dirName, { withFileTypes: true });
+        const childFolders = contents
+            .filter((item) => item.isDirectory())
+            .map((item) => path_1.default.join(dirName, item.name));
+        const globalData = JSON.parse(fs_1.default.readFileSync(path_1.default.resolve(__dirname, '../../../../.docusaurus/globalData.json'), { encoding: 'utf-8' }));
+        childFolders.map(childFolder => {
+            fs_1.default.readdir(childFolder, function (err, filenames) {
+                if (err) {
+                    console.error(err);
+                    return;
+                }
+                const ID = childFolder.split('/').pop();
+                console.log("Getting globalData from", ID);
+                const allVersions = globalData['docusaurus-plugin-content-docs'][ID].versions.filter(version => version.isLast === true);
+                const docPaths = allVersions.map(({ docs }) => docs.map(({ path }) => path)).flat();
+                fs_1.default.writeFile('docPaths.json', JSON.stringify(docPaths), function (err) {
+                    if (err)
+                        throw err;
+                });
+                filenames.forEach(function (filename) {
+                    var filePath = path_1.default.join(childFolder, filename);
+                    fs_1.default.readFile(filePath, 'utf-8', function (err, content) {
+                        if (err) {
+                            console.error(err);
+                            return;
+                        }
+                        const fileMetaData = JSON.parse(content);
+                        if (fileMetaData.permalink && docPaths.includes(fileMetaData.permalink)) {
+                            result.push(fileMetaData);
+                        }
+                    });
                 });
             });
         });
